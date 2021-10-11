@@ -19,7 +19,6 @@ package nextflow.processor
 import static nextflow.processor.ErrorStrategy.*
 
 import java.lang.reflect.InvocationTargetException
-import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -745,12 +744,13 @@ class TaskProcessor {
         while( true ) {
             hash = CacheHelper.defaultHasher().newHasher().putBytes(hash.asBytes()).putInt(tries).hash()
 
+            Path resumeDir = null
             boolean exists = false
             try {
-                final TaskEntry entry = session.cache.getTaskEntry(hash, this)
-                final Path resumeDir = entry ? entry.trace.getWorkDir() as Path : null
+                def entry = session.cache.getTaskEntry(hash, this)
+                resumeDir = entry ? entry.trace.getWorkDir() as Path : null
                 if( resumeDir )
-                    exists = Files.exists(resumeDir)
+                    exists = resumeDir.exists()
 
                 log.trace "[${task.name}] Cacheable folder=$resumeDir -- exists=$exists; try=$tries; shouldTryCache=$shouldTryCache"
                 def cached = shouldTryCache && exists && checkCachedOutput(task.clone(), resumeDir, hash, entry)
@@ -769,7 +769,8 @@ class TaskProcessor {
             final lock = lockManager.acquire(hash)
             final workDir = task.getWorkDirFor(hash)
             try {
-                exists = workDir.exists()
+                if( resumeDir != workDir )
+                    exists = workDir.exists()
                 if( !exists && !workDir.mkdirs() )
                     throw new IOException("Unable to create folder=$workDir -- check file system permission")
             }
