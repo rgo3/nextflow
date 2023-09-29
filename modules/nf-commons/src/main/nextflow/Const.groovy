@@ -64,7 +64,7 @@ class Const {
      */
     static public final int APP_BUILDNUM = 5890
 
-    /**
+	/**
      * The app build time string relative to UTC timezone
      */
     static public final String APP_TIMESTAMP_UTC = {

@@ -67,7 +67,7 @@ class TraceFileObserver implements TraceObserver {
      * The delimiter character used to separate column in the CSV file
      */
     String separator = '\t'
-
+ 
     /**
      * Overwrite existing trace file (required in some cases, as rolling filename has been deprecated)
      */
@@ -87,6 +87,8 @@ class TraceFileObserver implements TraceObserver {
      * Holds the the start time for tasks started/submitted but not yet completed
      */
     @PackageScope Map<TaskId,TraceRecord> current = new ConcurrentHashMap<>()
+
+	@PackageScope Map<TaskId,Process> iprof = new ConcurrentHashMap<>()
 
     private Agent<PrintWriter> writer
 
@@ -248,22 +250,37 @@ class TraceFileObserver implements TraceObserver {
      */
     @Override
     void onProcessStart(TaskHandler handler, TraceRecord trace) {
-        current[ trace.taskId ] = trace
+		final taskId = handler.task.id
+		final taskName = handler.task.name.replace(" ", "")
+		
+		def dir = tracePath.toAbsolutePath().getParent()
+	
+		ProcessBuilder pb = new ProcessBuilder("iprof", "-out=${dir}/${taskName}.out")
+		Process p = pb.start()
+        iprof[ trace.taskId ] = p
+	
+		current[ trace.taskId ] = trace
     }
 
     /**
      * This method is invoked when a process run completes
      * @param handler
-     */
+qq     */
     @Override
     void onProcessComplete(TaskHandler handler, TraceRecord trace) {
         final taskId = handler.task.id
+		final taskName = handler.task.name.replace(" ", "")
         if( !trace ) {
             log.debug "[WARN] Unable to find record for task run with id: ${taskId}"
             return
         }
-
-        // remove the record from the current records
+	
+		//sleep(1000)
+        Process p
+        p = iprof.get(taskId)
+        p.destroy()
+        
+		// remove the record from the current records
         current.remove(taskId)
 
         // save to the file

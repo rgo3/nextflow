@@ -176,7 +176,7 @@ class ReportObserver implements TraceObserver {
      */
     @Override
     void onProcessStart(TaskHandler handler, TraceRecord trace) {
-        log.trace "Trace report - start process > $handler"
+        log.trace "Trace report - start process > $handler"	
         synchronized (records) {
             records[ trace.taskId ] = trace
         }
